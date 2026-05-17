@@ -6,7 +6,7 @@ const QURAN_TEXT_API = 'https://api.alquran.cloud/v1/ayah';
 
 function splitAyahIntoWords(text) {
   return text
-    .replace(/\s+/g, ' ')
+    .replace(/\s+[\u06D6\u06D7\u06D8\u06D9\u06DB\u06DD\u06DA]/g, ' ')
     .trim()
     .split(' ')
     .filter(Boolean);
