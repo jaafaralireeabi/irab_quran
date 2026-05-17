@@ -16,3 +16,8 @@ export default defineConfig({
     },
   },
 });
+
+export default defineConfig({
+  plugins: [react()],
+  base: '/[https://github.com/jaafaralireeabi/irab_quran.git]/', // أضف هذا السطر واكتب اسم المستودع الخاص بك
+})
