@@ -41,12 +41,35 @@ function getBismillahFallback(word) {
 
   return {
     sura_number: 1,
-    sura_name: "الفاتحة",
     aya_number: 1,
     word_number: word.wordId,
-    word: fallback.word,
-    content: fallback.content,
   };
+}
+
+function isBismillahWord(word) {
+  return Boolean(
+    word && BISMILLAH_IRAB_BY_WORD[normalizeArabicWord(word.text)],
+  );
+}
+
+function ayahHasBismillah(word) {
+  return Boolean(
+    word && word.ayahId === 1 && word.surahId !== 9,
+  );
+}
+
+function getApiWordId(word) {
+  if (!word) return 0;
+
+  if (isBismillahWord(word)) {
+    return word.wordId;
+  }
+
+  if (ayahHasBismillah(word)) {
+    return word.wordId - 4;
+  }
+
+  return word.wordId;
 }
 
 function pickFirstString(data, keys) {
@@ -81,8 +104,8 @@ function normalizeIrabPayload(payload) {
     "text",
     "description",
     "value",
-  ]);
-
+  ]).replace(/[\u062C\u06DA]/g, "");
+  
   const details = Object.entries(item)
     .filter(
       ([, value]) =>
@@ -124,19 +147,15 @@ export default function IrabModal({ word, onClose }) {
       setPayload(null);
 
       try {
-          const fallback = getBismillahFallback(word);
-          if (fallback) {
-            const {surahId, ayahId, wordId} = fallback;
-            setPayload({
-              surahId,
-              ayahId,
-              wordId,
-              ...fallback,
-            });
-            return;
-          }
-        const { surahId, ayahId, wordId } = word;
-        const endpoint = `${IRAB_API_BASE}/${surahId}/${ayahId}/${wordId}/${wordId}`;
+        const fallback = getBismillahFallback(word);
+        const wordId = fallback
+          ? fallback.word_number
+          : getApiWordId(word);
+
+        const endpoint = fallback
+          ? `${IRAB_API_BASE}/${fallback.sura_number}/${fallback.aya_number}/${wordId}/${wordId}`
+          : `${IRAB_API_BASE}/${word.surahId}/${word.ayahId}/${wordId}/${wordId}`;
+        
         const response = await fetch(endpoint, {
           method: "GET",
           headers: {
@@ -144,7 +163,6 @@ export default function IrabModal({ word, onClose }) {
           },
           signal: controller.signal,
         });
-
         if (!response.ok) {
           throw new Error(await readErrorMessage(response));
         }
