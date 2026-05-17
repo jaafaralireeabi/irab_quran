@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "deploy": "gh-pages -d dist",
   "homepage": "https://jaafaralireeabi.github.io/irab_quran/",
   "scripts": {
     "dev": "vite",
