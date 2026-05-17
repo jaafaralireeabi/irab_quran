@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f8f5ee;
+  font-family: 'Tajawal', system-ui, sans-serif;
+}
+
+.dark body {
+  background: #101820;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+.quran-word {
+  font-variation-settings: normal;
+}
