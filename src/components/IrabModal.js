@@ -104,7 +104,7 @@ function normalizeIrabPayload(payload) {
     "text",
     "description",
     "value",
-  ]).replace(/[\u062C\u06DA]/g, "");
+  ]).replace(/[\u062C]/g, "");
   
   const details = Object.entries(item)
     .filter(
