@@ -28,6 +28,24 @@ export default function App() {
     setSelectedAyah(ayahId);
     setSelectedWord(null);
   }
+  function CopyRight() {
+    return (
+      
+      <footer className="font-bold h-16 flex items-center justify-center text-sm text-quran-ink/80 dark:text-slate-100/80">
+        <p>
+          تم تطوير هذا التطبيق بواسطة{' '}
+          <a
+            href="https://github.com/jaafaralireeabi/irab_quran"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-quran-gold underline hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-400"
+          >
+           jaafaralireeabi
+          </a>
+        </p>
+      </footer>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,#dbeee5_0,#f8f5ee_38%,#fffdf7_100%)] text-quran-ink transition-colors dark:bg-[radial-gradient(circle_at_top_right,#12372f_0,#101820_42%,#0b1117_100%)] dark:text-slate-100">
@@ -62,8 +80,9 @@ export default function App() {
           onWordClick={setSelectedWord}
         />
       </div>
-
       <IrabModal word={selectedWord} onClose={() => setSelectedWord(null)} />
+    <CopyRight />
     </div>
+    
   );
 }
