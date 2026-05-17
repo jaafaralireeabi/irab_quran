@@ -1,53 +1,115 @@
-import { AlertCircle, BookMarked, Loader2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, BookMarked, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-const IRAB_API_BASE = 'https://dev.surahapp.com/api/v1/word/eerab-word';
+const IRAB_API_BASE = "https://dev.surahapp.com/api/v1/word/eerab-word";
 const IRAB_SOURCE_ID = 2;
+const BISMILLAH_IRAB_BY_WORD = {
+  بسم: {
+    word: "بِسْمِ",
+    content:
+      "الباء حرف جر، واسم اسم مجرور بالباء وعلامة جره الكسرة، وهو مضاف.",
+  },
+  الله: {
+    word: "اللَّهِ",
+    content:
+      "اسم الجلالة مضاف إليه مجرور وعلامة جره الكسرة الظاهرة.",
+  },
+  الرحمن: {
+    word: "الرَّحْمَنِ",
+    content:
+      "الرحمن نعت لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.",
+  },
+  الرحيم: {
+    word: "الرَّحِيمِ",
+    content:
+      "الرحيم نعت ثان لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.",
+  },
+};
+
+function normalizeArabicWord(text) {
+  return text
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/[^\u0621-\u064A]/g, "");
+}
+
+function getBismillahFallback(word) {
+  if (!word) return null;
+
+  const fallback = BISMILLAH_IRAB_BY_WORD[normalizeArabicWord(word.text)];
+  if (!fallback) return null;
+
+  return {
+    sura_number: 1,
+    sura_name: "الفاتحة",
+    aya_number: 1,
+    word_number: word.wordId,
+    word: fallback.word,
+    content: fallback.content,
+  };
+}
 
 function pickFirstString(data, keys) {
-  if (!data || typeof data !== 'object') return '';
+  if (!data || typeof data !== "object") return "";
 
   for (const key of keys) {
-    if (typeof data[key] === 'string' && data[key].trim()) {
+    if (typeof data[key] === "string" && data[key].trim()) {
       return data[key];
     }
   }
 
-  return '';
+  return "";
 }
 
 function normalizeIrabPayload(payload) {
-  const item = Array.isArray(payload) ? payload[0] : payload?.data ?? payload;
+  const item = Array.isArray(payload) ? payload[0] : (payload?.data ?? payload);
 
-  if (!item || typeof item !== 'object') {
+  if (!item || typeof item !== "object") {
     return {
-      irab: typeof payload === 'string' ? payload : '',
+      irab: typeof payload === "string" ? payload : "",
       details: [],
     };
   }
 
   const irab = pickFirstString(item, [
-    'eerab',
-    'irab',
-    'iirab',
-    'arabicGrammar',
-    'grammar',
-    'text',
-    'description',
-    'value',
+    "content",
+    "eerab",
+    "irab",
+    "iirab",
+    "arabicGrammar",
+    "grammar",
+    "text",
+    "description",
+    "value",
   ]);
 
   const details = Object.entries(item)
-    .filter(([, value]) => value !== null && value !== undefined && typeof value !== 'object')
+    .filter(
+      ([, value]) =>
+        value !== null && value !== undefined && typeof value !== "object",
+    )
     .map(([key, value]) => ({ key, value: String(value) }));
 
   return { irab, details };
 }
 
+async function readErrorMessage(response) {
+  try {
+    const payload = await response.json();
+    if (payload?.error === "Word not found.") {
+      return "لا تتوفر بيانات إعراب لهذه الكلمة في المصدر الحالي.";
+    }
+
+    return payload?.error || payload?.message || "تعذر تحميل الإعراب لهذه الكلمة.";
+  } catch {
+    return "تعذر تحميل الإعراب لهذه الكلمة.";
+  }
+}
+
 export default function IrabModal({ word, onClose }) {
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const normalized = useMemo(() => normalizeIrabPayload(payload), [payload]);
 
@@ -58,29 +120,40 @@ export default function IrabModal({ word, onClose }) {
 
     async function fetchIrab() {
       setLoading(true);
-      setError('');
+      setError("");
       setPayload(null);
 
       try {
+          const fallback = getBismillahFallback(word);
+          if (fallback) {
+            const {surahId, ayahId, wordId} = fallback;
+            setPayload({
+              surahId,
+              ayahId,
+              wordId,
+              ...fallback,
+            });
+            return;
+          }
         const { surahId, ayahId, wordId } = word;
-        const endpoint = `${IRAB_API_BASE}/${surahId}/${ayahId}/${wordId}/${IRAB_SOURCE_ID}`;
+        const endpoint = `${IRAB_API_BASE}/${surahId}/${ayahId}/${wordId}/${wordId}`;
         const response = await fetch(endpoint, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            Accept: 'application/json',
+            Accept: "application/json",
           },
           signal: controller.signal,
         });
 
         if (!response.ok) {
-          throw new Error('تعذر تحميل الإعراب لهذه الكلمة.');
+          throw new Error(await readErrorMessage(response));
         }
 
         const data = await response.json();
         setPayload(data);
       } catch (fetchError) {
-        if (fetchError.name !== 'AbortError') {
-          setError(fetchError.message || 'حدث خطأ أثناء جلب بيانات الإعراب.');
+        if (fetchError.name !== "AbortError") {
+          setError(fetchError.message || "حدث خطأ أثناء جلب بيانات الإعراب.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -106,7 +179,9 @@ export default function IrabModal({ word, onClose }) {
             </span>
             <div>
               <p className="text-sm font-bold text-quran-gold">إعراب الكلمة</p>
-              <h2 className="font-arabic text-3xl font-bold text-quran-ink dark:text-white">{word.text}</h2>
+              <h2 className="font-arabic text-3xl font-bold text-quran-ink dark:text-white">
+                {word.text}
+              </h2>
             </div>
           </div>
           <button
@@ -133,36 +208,23 @@ export default function IrabModal({ word, onClose }) {
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
               <AlertCircle className="mb-3" size={28} />
               <p className="font-bold">{error}</p>
-              <p className="mt-2 text-sm leading-6">تحقق من اتصالك أو من توفر بيانات هذه الكلمة في المصدر.</p>
+              <p className="mt-2 text-sm leading-6">
+                جرّب كلمة أخرى، أو تحقق من توفر بيانات هذه الكلمة في مصدر الإعراب.
+              </p>
             </div>
           )}
 
           {!loading && !error && payload && (
             <div className="space-y-5">
               <div className="rounded-lg border border-quran-mint bg-quran-paper p-5 dark:border-slate-700 dark:bg-slate-950">
-                <p className="mb-2 text-sm font-bold text-quran-gold">النص الإعرابي</p>
+                <p className="mb-2 text-sm font-bold text-quran-gold">
+                  الإعراب:
+                </p>
                 <p className="text-xl leading-10 text-quran-ink dark:text-slate-100">
-                  {normalized.irab || 'لم يرجع المصدر نصا إعرابيا مباشرا لهذه الكلمة.'}
+                  {normalized.irab ||
+                    "لم يرجع المصدر نصًا إعرابيًا مباشرًا لهذه الكلمة."}
                 </p>
               </div>
-
-              {normalized.details.length > 0 && (
-                <dl className="grid gap-3 sm:grid-cols-2">
-                  {normalized.details.map((detail) => (
-                    <div
-                      key={`${detail.key}-${detail.value}`}
-                      className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950"
-                    >
-                      <dt className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        {detail.key}
-                      </dt>
-                      <dd className="mt-2 break-words text-sm leading-6 text-slate-800 dark:text-slate-100">
-                        {detail.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
             </div>
           )}
         </div>
