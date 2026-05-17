@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "homepage": "https://[jaafaralireeabi].github.io/[https://github.com/jaafaralireeabi/irab_quran.git]",
+  "homepage": "https://jaafaralireeabi.github.io/irab_quran/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
