@@ -1,5 +1,5 @@
 import { Loader2, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { SURAHS } from '../data/surahs.js';
 
 const QURAN_TEXT_API = 'https://api.alquran.cloud/v1/quran/quran-uthmani';
@@ -49,14 +49,20 @@ export default function SearchBar({ onSelectAyah }) {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
+  const latestQueryRef = useRef('');
+  const searchRequestRef = useRef(0);
 
-  async function handleSearch() {
-    const searchTerm = normalizeText(query);
+  async function handleSearch(searchValue = query) {
+    const searchTerm = normalizeText(searchValue);
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+
     setSearched(true);
     setError('');
 
     if (!searchTerm) {
       setResults([]);
+      setLoading(false);
       return;
     }
 
@@ -68,13 +74,37 @@ export default function SearchBar({ onSelectAyah }) {
         .filter((ayah) => ayah.normalizedText.includes(searchTerm))
         .slice(0, 20);
 
+      const isLatestSearch = requestId === searchRequestRef.current;
+      const isQueryUnchanged = normalizeText(latestQueryRef.current) === searchTerm;
+      if (!isLatestSearch || !isQueryUnchanged) return;
+
       setResults(matches);
     } catch (searchError) {
+      if (requestId !== searchRequestRef.current) return;
+
       setResults([]);
       setError(searchError.message || 'حدث خطأ أثناء البحث.');
     } finally {
-      setLoading(false);
+      if (requestId === searchRequestRef.current) {
+        setLoading(false);
+      }
     }
+  }
+
+  function handleQueryChange(event) {
+    const nextQuery = event.target.value;
+    latestQueryRef.current = nextQuery;
+    setQuery(nextQuery);
+    setSearched(false);
+    setError('');
+    if (nextQuery.trim() === '') {
+      searchRequestRef.current += 1;
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    handleSearch(nextQuery);
   }
 
   function handleSelect(result) {
@@ -82,10 +112,12 @@ export default function SearchBar({ onSelectAyah }) {
       surahId: result.surahId,
       ayahId: result.ayahId,
     });
-    // Optionally clear search results after selection
+    latestQueryRef.current = '';
+    searchRequestRef.current += 1;
     setResults([]);
     setQuery('');
     setSearched(false);
+    setLoading(false);
   }
 
   return (
@@ -99,11 +131,7 @@ export default function SearchBar({ onSelectAyah }) {
           type="search"
           placeholder="ابحث عن كلمة في القرآن..."
           value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setSearched(false);
-            setError('');
-          }}
+          onChange={handleQueryChange}
           onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
           className="min-w-0 flex-1 bg-transparent text-right text-quran-ink placeholder:text-quran-ink/70 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-100/70"
         />
@@ -113,7 +141,6 @@ export default function SearchBar({ onSelectAyah }) {
           disabled={loading}
           className="grid min-h-10 min-w-16 place-items-center rounded-lg bg-quran-green px-4 py-2 font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-wait disabled:opacity-70 dark:bg-quran-gold dark:text-slate-950 dark:focus:ring-yellow-900"
         >
-            {/* search load */}
           {loading ? <Loader2 className="animate-spin" size={18} /> : 'بحث'}
         </button>
       </div>
@@ -123,7 +150,7 @@ export default function SearchBar({ onSelectAyah }) {
           {error}
         </p>
       )}
-        {/* dropdown */}
+
       {!loading && results.length > 0 && (
         <div className="absolute right-0 z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-quran-mint bg-white shadow-soft dark:border-slate-700 dark:bg-slate-950">
           {results.map((result) => (
