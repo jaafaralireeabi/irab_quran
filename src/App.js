@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import IrabModal from './components/IrabModal.js';
 import QuranReader from './components/QuranReader.js';
 import SurahSelector from './components/SurahSelector.js';
+import SearchBar from './components/SearchBar.js';
 import { SURAHS } from './data/surahs.js';
 
 export default function App() {
@@ -28,9 +29,14 @@ export default function App() {
     setSelectedAyah(ayahId);
     setSelectedWord(null);
   }
+
+  function handleSearchSelect({ surahId, ayahId }) {
+    setSelectedSurah(surahId);
+    setSelectedAyah(ayahId);
+    setSelectedWord(null);
+  }
   function CopyRight() {
     return (
-      
       <footer className="font-bold h-16 flex items-center justify-center text-sm text-quran-ink/80 dark:text-slate-100/80">
         <p>
           تم تطوير هذا التطبيق بواسطة{' '}
@@ -65,7 +71,7 @@ export default function App() {
               {darkMode ? <Sun size={21} /> : <Moon size={21} />}
             </button>
           </div>
-
+          <SearchBar onSelectAyah={handleSearchSelect} />
           <SurahSelector
             selectedSurah={selectedSurah}
             selectedAyah={selectedAyah}
