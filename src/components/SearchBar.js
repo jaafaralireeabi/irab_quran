@@ -150,9 +150,15 @@ export default function SearchBar({ onSelectAyah }) {
           {error}
         </p>
       )}
+      
 
       {!loading && results.length > 0 && (
         <div className="absolute right-0 z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-quran-mint bg-white shadow-soft dark:border-slate-700 dark:bg-slate-950">
+          <div className='count'>
+            <p className="px-4 py-2 text-sm font-bold text-quran-green dark:text-emerald-300">
+                {results.length} نتيجة{results.length > 1 ? 'ً' : ''} لـ "{query.trim()}"
+                </p>
+             </div>
           {results.map((result) => (
             <button
               key={`${result.surahId}-${result.ayahId}`}
