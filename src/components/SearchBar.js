@@ -1,6 +1,7 @@
-import { Loader2, Search } from 'lucide-react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRef, useState } from 'react';
 import { SURAHS } from '../data/surahs.js';
+import { colors } from '../theme/colors.js';
 
 const QURAN_TEXT_API = 'https://api.alquran.cloud/v1/quran/quran-uthmani';
 let quranCache = null;
@@ -43,7 +44,7 @@ async function fetchQuranText() {
   return quranCache;
 }
 
-export default function SearchBar({ onSelectAyah }) {
+export default function SearchBar({ darkMode, onSelectAyah }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ export default function SearchBar({ onSelectAyah }) {
   const [error, setError] = useState('');
   const latestQueryRef = useRef('');
   const searchRequestRef = useRef(0);
+  const theme = darkMode ? darkStyles : lightStyles;
 
   async function handleSearch(searchValue = query) {
     const searchTerm = normalizeText(searchValue);
@@ -91,8 +93,7 @@ export default function SearchBar({ onSelectAyah }) {
     }
   }
 
-  function handleQueryChange(event) {
-    const nextQuery = event.target.value;
+  function handleQueryChange(nextQuery) {
     latestQueryRef.current = nextQuery;
     setQuery(nextQuery);
     setSearched(false);
@@ -121,72 +122,241 @@ export default function SearchBar({ onSelectAyah }) {
   }
 
   return (
-    <div className="relative mb-4">
-      <div className="flex items-center gap-2 rounded-lg border border-white/80 bg-white/80 p-3 shadow-soft backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
-        <Search
-          size={21}
-          className="shrink-0 text-quran-ink/80 dark:text-slate-100/80"
-        />
-        <input
-          type="search"
-          placeholder="ابحث عن كلمة في القرآن..."
-          value={query}
-          onChange={handleQueryChange}
-          onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-          className="min-w-0 flex-1 bg-transparent text-right text-quran-ink placeholder:text-quran-ink/70 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-100/70"
-        />
-        <button
-          type="button"
-          onClick={handleSearch}
-          disabled={loading}
-          className="grid min-h-10 min-w-16 place-items-center rounded-lg bg-quran-green px-4 py-2 font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-wait disabled:opacity-70 dark:bg-quran-gold dark:text-slate-950 dark:focus:ring-yellow-900"
-        >
-          {loading ? <Loader2 className="animate-spin" size={18} /> : 'بحث'}
-        </button>
-      </div>
+    <View style={styles.wrap}>
+      <View style={[styles.searchBox, theme.panel]}>
+      <Text style={[styles.searchIcon, theme.icon]}>⌕</Text>
 
-      {error && (
-        <p className="mt-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/40 dark:text-red-200">
-          {error}
-        </p>
-      )}
-      
+        <TextInput
+          placeholder="ابحث عن كلمة في القرآن..."
+          placeholderTextColor={darkMode ? '#cbd5e1' : '#64748b'}
+          value={query}
+          onChangeText={handleQueryChange}
+          onSubmitEditing={() => handleSearch()}
+          returnKeyType="search"
+          style={[styles.input, theme.input]}
+          textAlign="right"
+        />
+      <Pressable
+          onPress={() => handleSearch()}
+          disabled={loading}
+          style={[styles.searchButton, theme.searchButton, loading && styles.searchButtonDisabled]}
+        >
+          {loading ? (
+            <ActivityIndicator color={darkMode ? '#0f172a' : '#fff'} size="small" />
+          ) : (
+            <Text style={[styles.searchButtonText, darkMode && styles.searchButtonTextDark]}>بحث</Text>
+          )}
+        </Pressable>
+
+      </View>
+
+      {error ? <Text style={[styles.message, theme.errorMessage]}>{error}</Text> : null}
 
       {!loading && results.length > 0 && (
-        <div className="absolute right-0 z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-quran-mint bg-white shadow-soft dark:border-slate-700 dark:bg-slate-950">
-          <div className='count'>
-            <p className="px-4 py-2 text-sm font-bold text-quran-green dark:text-emerald-300">
-                {results.length} نتيجة{results.length > 1 ? 'ً' : ''} لـ "{query.trim()}"
-                </p>
-             </div>
-          {results.map((result) => (
-            <button
-              key={`${result.surahId}-${result.ayahId}`}
-              type="button"
-              onClick={() => handleSelect(result)}
-              className="w-full border-b border-quran-mint/70 px-4 py-3 text-right transition last:border-b-0 hover:bg-quran-mint focus:bg-quran-mint focus:outline-none dark:border-slate-800 dark:hover:bg-emerald-950 dark:focus:bg-emerald-950"
-            >
-              <span className="mb-1 flex items-center justify-between gap-3 text-sm font-bold">
-                <span className="text-quran-green dark:text-emerald-300">
-                  سورة {result.surahName}
-                </span>
-                <span className="text-quran-gold">
-                  الآية {result.ayahId}
-                </span>
-              </span>
-              <span className="line-clamp-2 font-arabic text-lg leading-8 text-quran-ink dark:text-white">
-                {result.text}
-              </span>
-            </button>
-          ))}
-        </div>
+        <View style={[styles.resultsBox, theme.resultsBox]}>
+          <Text style={[styles.resultsCount, theme.resultsCount]}>
+            {results.length} نتيجة لـ "{query.trim()}"
+          </Text>
+          <ScrollView style={styles.resultsScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            {results.map((result) => (
+              <Pressable
+                key={`${result.surahId}-${result.ayahId}`}
+                onPress={() => handleSelect(result)}
+                style={[styles.resultItem, theme.resultItem]}
+              >
+                <View style={styles.resultMeta}>
+                  <Text style={[styles.resultSurah, theme.resultSurah]}>سورة {result.surahName}</Text>
+                  <Text style={[styles.resultAyah, theme.gold]}>الآية {result.ayahId}</Text>
+                </View>
+                <Text style={[styles.resultText, theme.resultText]} numberOfLines={2}>
+                  {result.text}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {searched && !loading && !error && query.trim() && results.length === 0 && (
-        <p className="mt-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/40 dark:text-red-200">
+        <Text style={[styles.message, theme.errorMessage]}>
           لم يتم العثور على آية تحتوي على هذه الكلمة.
-        </p>
+        </Text>
       )}
-    </div>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    zIndex: 2,
+  },
+  searchBox: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 12,
+    shadowColor: '#1f2933',
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  searchIcon: {
+    fontSize: 24,
+    fontWeight: '800',
+    width: 28,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    minHeight: 42,
+    writingDirection: 'rtl',
+  },
+  searchButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    justifyContent: 'center',
+    minHeight: 40,
+    minWidth: 64,
+    paddingHorizontal: 12,
+  },
+  searchButtonDisabled: {
+    opacity: 0.7,
+  },
+  searchButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  searchButtonTextDark: {
+    color: '#0f172a',
+  },
+  message: {
+    borderRadius: 10,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 22,
+    marginTop: 8,
+    padding: 12,
+    textAlign: 'right',
+  },
+  resultsBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    overflow: 'hidden',
+    zIndex: 20,
+  },
+  resultsCount: {
+    fontSize: 14,
+    fontWeight: '800',
+    padding: 12,
+    textAlign: 'right',
+  },
+  resultsScroll: {
+    maxHeight: 330,
+  },
+  resultItem: {
+    borderTopWidth: 1,
+    padding: 12,
+  },
+  resultMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  resultSurah: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  resultAyah: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  resultText: {
+    fontSize: 19,
+    lineHeight: 34,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+});
+
+const lightStyles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.white85,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  icon: {
+    color: colors.ink,
+    opacity: 0.8,
+  },
+  input: {
+    color: colors.ink,
+  },
+  searchButton: {
+    backgroundColor: colors.green,
+  },
+  errorMessage: {
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+  },
+  resultsBox: {
+    backgroundColor: '#ffffff',
+    borderColor: '#d8e9dd',
+  },
+  resultsCount: {
+    color: colors.green,
+  },
+  resultItem: {
+    borderTopColor: 'rgba(219, 238, 229, 0.7)',
+  },
+  resultSurah: {
+    color: colors.green,
+  },
+  gold: {
+    color: colors.gold,
+  },
+  resultText: {
+    color: colors.ink,
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.slate900_80,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  searchButton: {
+    backgroundColor: colors.gold,
+  },
+  icon: {
+    color: '#e5e7eb',
+  },
+  input: {
+    color: '#ffffff',
+  },
+  errorMessage: {
+    backgroundColor: '#450a0a',
+    color: '#fecaca',
+  },
+  resultsBox: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+  },
+  resultsCount: {
+    color: '#a7f3d0',
+  },
+  resultItem: {
+    borderTopColor: '#1f2937',
+  },
+  resultSurah: {
+    color: '#a7f3d0',
+  },
+  gold: {
+    color: '#f4d47c',
+  },
+  resultText: {
+    color: '#ffffff',
+  },
+});

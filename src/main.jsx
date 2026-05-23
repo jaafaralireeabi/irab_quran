@@ -3,6 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App.js';
 import './styles.css';
 
+if (typeof document !== 'undefined') {
+  document.documentElement.dir = 'rtl';
+  document.documentElement.lang = 'ar';
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

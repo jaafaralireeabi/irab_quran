@@ -1,71 +1,252 @@
-import { BookOpen, Hash } from 'lucide-react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SURAHS } from '../data/surahs.js';
+import { colors } from '../theme/colors.js';
+import SelectField from './SelectField.js';
 
 function buildAyahOptions(count) {
-  return Array.from({ length: count }, (_, index) => index + 1);
+  return Array.from({ length: count }, (_, index) => ({
+    label: `الآية ${index + 1}`,
+    value: index + 1,
+  }));
 }
 
+const surahOptions = SURAHS.map((surah) => ({
+  label: `${surah.id}. سورة ${surah.name}`,
+  value: surah.id,
+}));
+
 export default function SurahSelector({
+  darkMode,
   selectedSurah,
   selectedAyah,
   onSurahChange,
   onAyahChange,
 }) {
+  const theme = darkMode ? darkStyles : lightStyles;
   const currentSurah = SURAHS.find((surah) => surah.id === selectedSurah) ?? SURAHS[0];
   const ayahOptions = buildAyahOptions(currentSurah.ayahs);
+  const activeColor = darkMode ? '#064e3b' : colors.mint;
+
+  const dropdownProps = {
+    darkMode,
+    theme,
+    activeColor,
+    dropdownStyle: [styles.dropdown, theme.dropdown],
+    containerStyle: [styles.dropdownContainer, theme.dropdownContainer],
+    textStyle: [styles.dropdownText, theme.dropdownText],
+    placeholderStyle: [styles.dropdownText, theme.placeholder],
+  };
 
   return (
-    <aside className="w-full rounded-lg border border-quran-mint/80 bg-white/85 p-4 shadow-soft backdrop-blur dark:border-white/10 dark:bg-slate-900/80 lg:sticky lg:top-6 lg:w-80">
-      <div className="mb-5 flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-lg bg-quran-mint text-quran-green dark:bg-emerald-900/60 dark:text-emerald-100">
-          <BookOpen size={22} />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-quran-gold">التصفح</p>
-          <h2 className="text-xl font-bold text-quran-ink dark:text-white">اختر السورة والآية</h2>
-        </div>
-      </div>
+    <View style={[styles.card, theme.card]}>
+      <View style={styles.headingRow}>
+      <View style={[styles.iconBox, theme.iconBox]}>
+          <Text style={[styles.iconText, theme.iconText]}>📖</Text>
+        </View>
+      <View style={styles.headingText}>
+          <Text style={[styles.kicker, theme.gold]}>التصفح</Text>
+          <Text style={[styles.heading, theme.title]}>اختر السورة والآية</Text>
+        </View>
 
-      <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200" htmlFor="surah">
-        السورة
-      </label>
-      <select
-        id="surah"
+        
+      </View>
+
+      <Text style={[styles.label, theme.label]}>السورة</Text>
+      <SelectField
+        {...dropdownProps}
+        data={surahOptions}
         value={selectedSurah}
-        onChange={(event) => onSurahChange(Number(event.target.value))}
-        className="mb-5 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-right text-slate-900 outline-none transition focus:border-quran-green focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-emerald-950"
-      >
-        {SURAHS.map((surah) => (
-          <option key={surah.id} value={surah.id}>
-            {surah.id}. سورة {surah.name}
-          </option>
-        ))}
-      </select>
+        onValueChange={onSurahChange}
+        accessibilityLabel="اختر السورة"
+      />
 
-      <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200" htmlFor="ayah">
-        الآية
-      </label>
-      <div className="relative">
-        <Hash className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-quran-gold" size={18} />
-        <select
-          id="ayah"
-          value={selectedAyah}
-          onChange={(event) => onAyahChange(Number(event.target.value))}
-          className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-4 pr-11 text-right text-slate-900 outline-none transition focus:border-quran-green focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-emerald-950"
-        >
-          {ayahOptions.map((ayah) => (
-            <option key={ayah} value={ayah}>
-              الآية {ayah}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Text style={[styles.label, theme.label, styles.ayahLabel]}>الآية</Text>
+      <SelectField
+        {...dropdownProps}
+        data={ayahOptions}
+        value={selectedAyah}
+        onValueChange={onAyahChange}
+        withHashIcon
+        accessibilityLabel="اختر الآية"
+      />
 
-      <div className="mt-5 rounded-lg bg-quran-cream p-4 text-sm leading-7 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-        <strong className="text-quran-green dark:text-emerald-300">سورة {currentSurah.name}</strong>
-        <span className="mx-2 text-quran-gold">•</span>
-        {currentSurah.ayahs} آية
-      </div>
-    </aside>
+      <View style={[styles.summary, theme.summary]}>
+        <Text style={[styles.summaryText, theme.summaryText]}>
+          <Text style={theme.summaryStrong}>سورة {currentSurah.name}</Text>
+          <Text style={theme.gold}> • </Text>
+          {currentSurah.ayahs} آية
+        </Text>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'visible',
+    padding: 16,
+    shadowColor: '#1f2933',
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 3,
+    zIndex: 1,
+  },
+  headingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  iconBox: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  iconText: {
+    fontSize: 20,
+  },
+  headingText: {
+    alignItems: 'flex-start',
+    flex: 1,
+  },
+  kicker: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  ayahLabel: {
+    marginTop: 4,
+  },
+  dropdown: {
+    borderRadius: 10,
+    marginBottom: 20,
+    minHeight: 48,
+  },
+  dropdownContainer: {
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  dropdownText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  summary: {
+    borderRadius: 10,
+    padding: 14,
+  },
+  summaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 24,
+    textAlign: 'right',
+  },
+});
+
+const lightStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.white85,
+    borderColor: 'rgba(219, 238, 229, 0.8)',
+  },
+  iconBox: {
+    backgroundColor: colors.mint,
+  },
+  iconText: {
+    color: colors.green,
+  },
+  gold: {
+    color: colors.gold,
+  },
+  title: {
+    color: colors.ink,
+  },
+  label: {
+    color: '#334155',
+  },
+  dropdown: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  dropdownContainer: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+  },
+  dropdownText: {
+    color: colors.ink,
+  },
+  placeholder: {
+    color: '#64748b',
+  },
+  summary: {
+    backgroundColor: colors.cream,
+  },
+  summaryText: {
+    color: '#334155',
+  },
+  summaryStrong: {
+    color: colors.green,
+    fontWeight: '800',
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.slate900_80,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  iconBox: {
+    backgroundColor: '#064e3b',
+  },
+  iconText: {
+    color: '#d1fae5',
+  },
+  gold: {
+    color: '#f4d47c',
+  },
+  title: {
+    color: '#ffffff',
+  },
+  label: {
+    color: '#e2e8f0',
+  },
+  dropdown: {
+    backgroundColor: '#020617',
+    borderColor: '#334155',
+  },
+  dropdownContainer: {
+    backgroundColor: '#020617',
+    borderColor: '#334155',
+  },
+  dropdownText: {
+    color: '#ffffff',
+  },
+  placeholder: {
+    color: '#94a3b8',
+  },
+  summary: {
+    backgroundColor: '#1e293b',
+  },
+  summaryText: {
+    color: '#cbd5e1',
+  },
+  summaryStrong: {
+    color: '#a7f3d0',
+    fontWeight: '800',
+  },
+});

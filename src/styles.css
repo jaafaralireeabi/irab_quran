@@ -1,34 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   color-scheme: light;
+  --color-cream: #f8f5ee;
+  --color-paper: #fffdf7;
+  --color-green: #1f6f5b;
+  --color-mint: #dbeee5;
+  --color-gold: #b88a2f;
+  --color-ink: #1f2933;
+  --color-screen-dark: #101820;
+  --font-sans: 'Tajawal', system-ui, sans-serif;
+  --font-arabic: 'Amiri', 'Scheherazade New', serif;
 }
 
 .dark {
   color-scheme: dark;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
+#root {
+  display: flex;
+  flex: 1;
+  min-height: 100vh;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  background: #f8f5ee;
-  font-family: 'Tajawal', system-ui, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
 
 .dark body {
-  background: #101820;
+  background: var(--color-screen-dark);
+  color: #f8fafc;
 }
 
 button,
 select,
 input {
   font: inherit;
-}
-
-.quran-word {
-  font-variation-settings: normal;
 }

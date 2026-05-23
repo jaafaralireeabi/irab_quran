@@ -1,6 +1,8 @@
-import { AlertCircle, Loader2, MousePointerClick } from 'lucide-react';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { SURAHS } from '../data/surahs.js';
+import { colors } from '../theme/colors.js';
+import { useResponsiveLayout } from '../utils/responsive.js';
 
 const QURAN_TEXT_API = 'https://api.alquran.cloud/v1/ayah';
 
@@ -12,11 +14,13 @@ function splitAyahIntoWords(text) {
     .filter(Boolean);
 }
 
-export default function QuranReader({ selectedSurah, selectedAyah, onWordClick }) {
+export default function QuranReader({ darkMode, selectedSurah, selectedAyah, onWordClick }) {
   const [ayahText, setAyahText] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const layout = useResponsiveLayout();
+  const theme = darkMode ? darkStyles : lightStyles;
   const surah = SURAHS.find((item) => item.id === selectedSurah) ?? SURAHS[0];
   const words = useMemo(() => splitAyahIntoWords(ayahText), [ayahText]);
 
@@ -56,61 +60,263 @@ export default function QuranReader({ selectedSurah, selectedAyah, onWordClick }
   }, [selectedSurah, selectedAyah]);
 
   return (
-    <main className="min-h-[520px] flex-1 rounded-lg border border-white/80 bg-quran-paper p-5 shadow-soft dark:border-white/10 dark:bg-slate-900 md:p-8">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-4 border-b border-quran-mint pb-5 dark:border-slate-700">
-        <div>
-          <p className="text-sm font-bold text-quran-gold">إعراب القرآن الكريم</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-quran-ink dark:text-white md:text-3xl">
+    <View style={[styles.card, theme.card, layout.isWideLayout && styles.cardWide]}>
+      <View style={[styles.header, theme.divider]}>
+
+
+        <View style={styles.headerText}>
+          <Text style={[styles.kicker, theme.gold]}>إعراب القرآن الكريم</Text>
+          <Text
+            style={[
+              styles.title,
+              theme.title,
+              layout.isTablet && styles.titleWide,
+            ]}
+          >
             سورة {surah.name}، الآية {selectedAyah}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg bg-quran-mint px-3 py-2 text-sm font-bold text-quran-green dark:bg-emerald-950 dark:text-emerald-200">
-          <MousePointerClick size={18} />
-          اضغط على أي كلمة
-        </div>
-      </div>
+          </Text>
+        </View>
+        <View style={[styles.hint, theme.hint]}>
+          <Text style={[styles.hintIcon, theme.hintText]}>✦</Text>
+          <Text style={[styles.hintText, theme.hintText]}>اضغط على أي كلمة</Text>
+        </View>
+      </View>
 
       {loading && (
-        <div className="grid min-h-[320px] place-items-center text-quran-green dark:text-emerald-300">
-          <div className="text-center">
-            <Loader2 className="mx-auto mb-3 animate-spin" size={34} />
-            <p className="font-bold">جاري تحميل الآية...</p>
-          </div>
-        </div>
+        <View style={styles.centerState}>
+          <ActivityIndicator color={darkMode ? '#a7f3d0' : colors.green} size="large" />
+          <Text style={[styles.stateText, theme.title]}>جاري تحميل الآية...</Text>
+        </View>
       )}
 
       {!loading && error && (
-        <div className="flex min-h-[320px] items-center justify-center">
-          <div className="max-w-md rounded-lg border border-red-200 bg-red-50 p-5 text-center text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
-            <AlertCircle className="mx-auto mb-3" size={32} />
-            <p className="font-bold">{error}</p>
-          </div>
-        </div>
+        <View style={[styles.errorBox, theme.errorBox]}>
+          <Text style={[styles.errorIcon, theme.errorText]}>!</Text>
+          <Text style={[styles.errorText, theme.errorText]}>{error}</Text>
+        </View>
       )}
 
       {!loading && !error && (
-        <article className="mx-auto max-w-4xl text-center">
-          <div className="font-arabic text-[2.1rem] leading-[2.35] text-quran-ink dark:text-slate-50 md:text-[3rem] md:leading-[2.15]">
+        <View style={styles.ayahWrap}>
+          <Text
+            style={[
+              styles.ayahText,
+              theme.ayahText,
+              Platform.OS === 'web' && styles.ayahFontWeb,
+              { fontSize: layout.ayahFontSize, lineHeight: layout.ayahLineHeight },
+            ]}
+          >
             {words.map((word, index) => (
-              <button
-                key={`${word}-${index}`}
-                type="button"
-                onClick={() =>
-                  onWordClick({
-                    text: word,
-                    wordId: index + 1,
-                    surahId: selectedSurah,
-                    ayahId: selectedAyah,
-                  })
-                }
-                className="quran-word mx-1 rounded-lg px-2 py-1 transition hover:bg-quran-mint hover:text-quran-green focus:bg-quran-mint focus:text-quran-green focus:outline-none focus:ring-4 focus:ring-emerald-100 dark:hover:bg-emerald-950 dark:hover:text-emerald-200 dark:focus:bg-emerald-950 dark:focus:text-emerald-200 dark:focus:ring-emerald-950"
-              >
-                {word}
-              </button>
+              <Text key={`${word}-${index}`}>
+                <Text> </Text>
+                <Text
+                  onPress={() =>
+                    onWordClick({
+                      text: word,
+                      wordId: index + 1,
+                      surahId: selectedSurah,
+                      ayahId: selectedAyah,
+                    })
+                  }
+                  style={[
+                    styles.word,
+                    theme.word,
+                    { fontSize: layout.ayahFontSize, lineHeight: layout.ayahLineHeight },
+                  ]}
+                >
+                  {word}
+                </Text>
+              </Text>
             ))}
-          </div>
-        </article>
+          </Text>
+        </View>
       )}
-    </main>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 420,
+    padding: 16,
+    shadowColor: '#1f2933',
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  cardWide: {
+    minHeight: 520,
+    padding: 20,
+  },
+  header: {
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+    marginBottom: 28,
+    paddingBottom: 20,
+  },
+  headerText: {
+    alignItems: 'flex-start',
+    flexGrow: 1,
+    minWidth: 200,
+  },
+  kicker: {
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 34,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  titleWide: {
+    fontSize: 30,
+    lineHeight: 40,
+  },
+  hint: {
+    alignItems: 'center',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  hintIcon: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  hintText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 320,
+  },
+  stateText: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  errorBox: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginTop: 30,
+    minHeight: 320,
+    padding: 18,
+  },
+  errorIcon: {
+    fontSize: 28,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  ayahWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 896,
+    minHeight: 320,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  ayahText: {
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
+  ayahFontWeb: {
+    fontFamily: 'Amiri, Scheherazade New, serif',
+  },
+  word: {
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+});
+
+const lightStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.paper,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  divider: {
+    borderBottomColor: colors.mint,
+  },
+  gold: {
+    color: colors.gold,
+  },
+  title: {
+    color: colors.ink,
+  },
+  hint: {
+    backgroundColor: colors.mint,
+  },
+  hintText: {
+    color: colors.green,
+  },
+  ayahText: {
+    color: colors.ink,
+  },
+  word: {
+    color: colors.ink,
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    color: '#b91c1c',
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#111827',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  divider: {
+    borderBottomColor: '#334155',
+  },
+  gold: {
+    color: '#f4d47c',
+  },
+  title: {
+    color: '#ffffff',
+  },
+  hint: {
+    backgroundColor: '#064e3b',
+  },
+  hintText: {
+    color: '#d1fae5',
+  },
+  ayahText: {
+    color: '#f8fafc',
+  },
+  word: {
+    color: '#f8fafc',
+  },
+  errorBox: {
+    backgroundColor: '#450a0a',
+    borderColor: '#7f1d1d',
+  },
+  errorText: {
+    color: '#fecaca',
+  },
+});

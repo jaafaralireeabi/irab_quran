@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Irab Al Quran",
+    "slug": "irab-al-quran",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#fffdf7"
+      },
+      "package": "com.jaafar_ali2026.irabalquran"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "756c5de1-f5d3-4061-ada0-bd9535b88622"
+      }
+    },
+    "owner": "jaafar_ali2026"
+  }
+}

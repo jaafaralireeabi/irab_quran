@@ -1,36 +1,45 @@
-import { AlertCircle, BookMarked, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { useResponsiveLayout } from '../utils/responsive.js';
 
-const IRAB_API_BASE = "https://dev.surahapp.com/api/v1/word/eerab-word";
-const IRAB_SOURCE_ID = 2;
+const IRAB_API_BASE = 'https://dev.surahapp.com/api/v1/word/eerab-word';
 const BISMILLAH_IRAB_BY_WORD = {
   بسم: {
-    word: "بِسْمِ",
+    word: 'بِسْمِ',
     content:
-      "الباء حرف جر، واسم اسم مجرور بالباء وعلامة جره الكسرة، وهو مضاف.",
+      'الباء حرف جر، واسم اسم مجرور بالباء وعلامة جره الكسرة، وهو مضاف.',
   },
   الله: {
-    word: "اللَّهِ",
+    word: 'اللَّهِ',
     content:
-      "اسم الجلالة مضاف إليه مجرور وعلامة جره الكسرة الظاهرة.",
+      'اسم الجلالة مضاف إليه مجرور وعلامة جره الكسرة الظاهرة.',
   },
   الرحمن: {
-    word: "الرَّحْمَنِ",
+    word: 'الرَّحْمَنِ',
     content:
-      "الرحمن نعت لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.",
+      'الرحمن نعت لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.',
   },
   الرحيم: {
-    word: "الرَّحِيمِ",
+    word: 'الرَّحِيمِ',
     content:
-      "الرحيم نعت ثان لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.",
+      'الرحيم نعت ثان لاسم الجلالة مجرور وعلامة جره الكسرة الظاهرة.',
   },
 };
 
 function normalizeArabicWord(text) {
   return text
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/[^\u0621-\u064A]/g, "");
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[إأآٱ]/g, 'ا')
+    .replace(/[^\u0621-\u064A]/g, '');
 }
 
 function getBismillahFallback(word) {
@@ -47,15 +56,11 @@ function getBismillahFallback(word) {
 }
 
 function isBismillahWord(word) {
-  return Boolean(
-    word && BISMILLAH_IRAB_BY_WORD[normalizeArabicWord(word.text)],
-  );
+  return Boolean(word && BISMILLAH_IRAB_BY_WORD[normalizeArabicWord(word.text)]);
 }
 
 function ayahHasBismillah(word) {
-  return Boolean(
-    word && word.ayahId === 1 && word.surahId !== 9,
-  );
+  return Boolean(word && word.ayahId === 1 && word.surahId !== 9);
 }
 
 function getApiWordId(word) {
@@ -73,67 +78,61 @@ function getApiWordId(word) {
 }
 
 function pickFirstString(data, keys) {
-  if (!data || typeof data !== "object") return "";
+  if (!data || typeof data !== 'object') return '';
 
   for (const key of keys) {
-    if (typeof data[key] === "string" && data[key].trim()) {
+    if (typeof data[key] === 'string' && data[key].trim()) {
       return data[key];
     }
   }
 
-  return "";
+  return '';
 }
 
 function normalizeIrabPayload(payload) {
   const item = Array.isArray(payload) ? payload[0] : (payload?.data ?? payload);
 
-  if (!item || typeof item !== "object") {
+  if (!item || typeof item !== 'object') {
     return {
-      irab: typeof payload === "string" ? payload : "",
-      details: [],
+      irab: typeof payload === 'string' ? payload : '',
     };
   }
 
   const irab = pickFirstString(item, [
-    "content",
-    "eerab",
-    "irab",
-    "iirab",
-    "arabicGrammar",
-    "grammar",
-    "text",
-    "description",
-    "value",
+    'content',
+    'eerab',
+    'irab',
+    'iirab',
+    'arabicGrammar',
+    'grammar',
+    'text',
+    'description',
+    'value',
   ]);
-  
-  const details = Object.entries(item)
-    .filter(
-      ([, value]) =>
-        value !== null && value !== undefined && typeof value !== "object",
-    )
-    .map(([key, value]) => ({ key, value: String(value) }));
 
-  return { irab, details };
+  return { irab };
 }
 
 async function readErrorMessage(response) {
   try {
     const payload = await response.json();
-    if (payload?.error === "Word not found.") {
-      return "لا تتوفر بيانات إعراب لهذه الكلمة في المصدر الحالي.";
+    if (payload?.error === 'Word not found.') {
+      return 'لا تتوفر بيانات إعراب لهذه الكلمة في المصدر الحالي.';
     }
 
-    return payload?.error || payload?.message || "تعذر تحميل الإعراب لهذه الكلمة.";
+    return payload?.error || payload?.message || 'تعذر تحميل الإعراب لهذه الكلمة.';
   } catch {
-    return "تعذر تحميل الإعراب لهذه الكلمة.";
+    return 'تعذر تحميل الإعراب لهذه الكلمة.';
   }
 }
 
-export default function IrabModal({ word, onClose }) {
+export default function IrabModal({ darkMode, word, onClose }) {
+  const layout = useResponsiveLayout();
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
+  const theme = darkMode ? darkStyles : lightStyles;
   const normalized = useMemo(() => normalizeIrabPayload(payload), [payload]);
 
   useEffect(() => {
@@ -143,23 +142,21 @@ export default function IrabModal({ word, onClose }) {
 
     async function fetchIrab() {
       setLoading(true);
-      setError("");
+      setError('');
       setPayload(null);
 
       try {
         const fallback = getBismillahFallback(word);
-        const wordId = fallback
-          ? fallback.word_number
-          : getApiWordId(word);
+        const wordId = fallback ? fallback.word_number : getApiWordId(word);
 
         const endpoint = fallback
           ? `${IRAB_API_BASE}/${fallback.sura_number}/${fallback.aya_number}/${wordId}/${wordId}`
           : `${IRAB_API_BASE}/${word.surahId}/${word.ayahId}/${wordId}/${wordId}`;
-        
+
         const response = await fetch(endpoint, {
-          method: "GET",
+          method: 'GET',
           headers: {
-            Accept: "application/json",
+            Accept: 'application/json',
           },
           signal: controller.signal,
         });
@@ -170,8 +167,8 @@ export default function IrabModal({ word, onClose }) {
         const data = await response.json();
         setPayload(data);
       } catch (fetchError) {
-        if (fetchError.name !== "AbortError") {
-          setError(fetchError.message || "حدث خطأ أثناء جلب بيانات الإعراب.");
+        if (fetchError.name !== 'AbortError') {
+          setError(fetchError.message || 'حدث خطأ أثناء جلب بيانات الإعراب.');
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -184,69 +181,285 @@ export default function IrabModal({ word, onClose }) {
 
     return () => controller.abort();
   }, [word]);
-
-  if (!word) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-sm md:items-center md:p-6">
-      <section className="max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-t-lg bg-white shadow-soft dark:bg-slate-900 md:rounded-lg">
-        <header className="flex items-start justify-between gap-4 border-b border-quran-mint bg-quran-cream p-5 dark:border-slate-700 dark:bg-slate-950">
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-lg bg-white text-quran-gold shadow-sm dark:bg-slate-800">
-              <BookMarked size={22} />
-            </span>
-            <div>
-              <p className="text-sm font-bold text-quran-gold">إعراب الكلمة</p>
-              <h2 className="font-arabic text-3xl font-bold text-quran-ink dark:text-white">
-                {word.text}
-              </h2>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="إغلاق"
-            className="grid h-10 w-10 place-items-center rounded-lg text-slate-600 transition hover:bg-white hover:text-quran-green focus:outline-none focus:ring-4 focus:ring-emerald-100 dark:text-slate-300 dark:hover:bg-slate-800 dark:focus:ring-emerald-950"
-          >
-            <X size={22} />
-          </button>
-        </header>
+    //close modal when click on overlay
+    <Modal visible={Boolean(word)} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={[styles.backdrop, layout.isTablet && styles.backdropWide]} onPress={onClose}>
+        <Pressable
+          style={[
+            styles.sheet,
+            theme.sheet,
+            layout.isTablet && styles.sheetWide,
+            { maxWidth: layout.modalMaxWidth },
+          ]}
+          onPress={(event) => event.stopPropagation()}
+        >
+          <View style={[styles.header, theme.header]}>
+            <View style={styles.titleWrap}>
+              <View style={[styles.iconBox, theme.iconBox]}>
+                <Text style={[styles.iconText, theme.gold]}>إ</Text>
+              </View>
+              <View style={styles.wordTitleWrap}>
+                <Text style={[styles.kicker, theme.gold]}>إعراب الكلمة</Text>
+                <Text style={[styles.wordTitle, theme.title]}>{word?.text}</Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="إغلاق"
+              style={[styles.closeButton, theme.closeButton]}
+            >
+              <Text style={[styles.closeButtonText, theme.closeButtonText]}>×</Text>
+            </Pressable>
+          </View>
 
-        <div className="max-h-[68vh] overflow-y-auto p-5 md:p-6">
-          {loading && (
-            <div className="grid min-h-48 place-items-center text-quran-green dark:text-emerald-300">
-              <div className="text-center">
-                <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
-                <p className="font-bold">جاري جلب الإعراب...</p>
-              </div>
-            </div>
-          )}
+          <ScrollView style={styles.modalScroll} contentContainerStyle={[styles.body, styles.modalBodyRtl]}>
+            {loading && (
+              <View style={styles.centerState}>
+                <ActivityIndicator color={darkMode ? '#a7f3d0' : '#14532d'} size="large" />
+                <Text style={[styles.stateText, theme.title]}>جاري جلب الإعراب...</Text>
+              </View>
+            )}
 
-          {!loading && error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
-              <AlertCircle className="mb-3" size={28} />
-              <p className="font-bold">{error}</p>
-              <p className="mt-2 text-sm leading-6">
-                جرّب كلمة أخرى، أو تحقق من توفر بيانات هذه الكلمة في مصدر الإعراب.
-              </p>
-            </div>
-          )}
+            {!loading && error && (
+              <View style={[styles.errorBox, theme.errorBox]}>
+                <Text style={[styles.errorIcon, theme.errorText]}>!</Text>
+                <Text style={[styles.errorText, theme.errorText]}>{error}</Text>
+                <Text style={[styles.errorHint, theme.errorText]}>
+                  جرّب كلمة أخرى، أو تحقق من توفر بيانات هذه الكلمة في مصدر الإعراب.
+                </Text>
+              </View>
+            )}
 
-          {!loading && !error && payload && (
-            <div className="space-y-5">
-              <div className="rounded-lg border border-quran-mint bg-quran-paper p-5 dark:border-slate-700 dark:bg-slate-950">
-                <p className="mb-2 text-sm font-bold text-quran-gold">
-                  الإعراب:
-                </p>
-                <p className="text-xl leading-10 text-quran-ink dark:text-slate-100">
+            {!loading && !error && payload && (
+              <View style={[styles.irabBox, theme.irabBox]}>
+                <Text style={[styles.irabLabel, theme.gold]}>الإعراب:</Text>
+                <Text style={[styles.irabText, theme.bodyText]}>
                   {normalized.irab ||
-                    "لم يرجع المصدر نصًا إعرابيًا مباشرًا لهذه الكلمة."}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+                    'لم يرجع المصدر نصا إعرابيا مباشرا لهذه الكلمة.'}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+    
   );
 }
+
+
+
+const styles = StyleSheet.create({
+  backdrop: {
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdropWide: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  sheet: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    maxHeight: '88%',
+    overflow: 'hidden',
+    width: '100%',
+  },
+  sheetWide: {
+    borderRadius: 18,
+    maxHeight: '80%',
+  },
+  header: {
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  titleWrap: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconBox: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  iconText: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  wordTitleWrap: {
+    alignItems: 'flex-end',
+    flex: 1,
+  },
+  kicker: {
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  wordTitle: {
+    fontSize: 30,
+    fontWeight: '900',
+    marginTop: 2,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  closeButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  closeButtonText: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 32,
+  },
+  modalScroll: {
+    ...(Platform.OS === 'web' ? { direction: 'ltr' } : null),
+  },
+  modalBodyRtl: Platform.select({
+    web: { direction: 'rtl' },
+    default: {},
+  }),
+  body: {
+    padding: 16,
+  },
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180,
+  },
+  stateText: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  errorBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+  },
+  errorIcon: {
+    fontSize: 26,
+    fontWeight: '900',
+    textAlign: 'right',
+  },
+  errorText: {
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 24,
+    textAlign: 'right',
+  },
+  errorHint: {
+    fontSize: 14,
+    lineHeight: 24,
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  irabBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  irabLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 8,
+    textAlign: 'right',
+  },
+  irabText: {
+    fontSize: 20,
+    lineHeight: 36,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+});
+
+const lightStyles = StyleSheet.create({
+  sheet: {
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    backgroundColor: '#f3ead7',
+    borderBottomColor: '#d8e9dd',
+  },
+  iconBox: {
+    backgroundColor: '#ffffff',
+  },
+  gold: {
+    color: '#b88924',
+  },
+  title: {
+    color: '#173b2f',
+  },
+  closeButton: {
+    backgroundColor: '#ffffff',
+  },
+  closeButtonText: {
+    color: '#334155',
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    color: '#b91c1c',
+  },
+  irabBox: {
+    backgroundColor: '#fffdf7',
+    borderColor: '#d8e9dd',
+  },
+  bodyText: {
+    color: '#173b2f',
+  },
+});
+
+const darkStyles = StyleSheet.create({
+  sheet: {
+    backgroundColor: '#111827',
+  },
+  header: {
+    backgroundColor: '#0f172a',
+    borderBottomColor: '#334155',
+  },
+  iconBox: {
+    backgroundColor: '#1f2937',
+  },
+  gold: {
+    color: '#f4d47c',
+  },
+  title: {
+    color: '#ffffff',
+  },
+  closeButton: {
+    backgroundColor: '#1f2937',
+  },
+  closeButtonText: {
+    color: '#e5e7eb',
+  },
+  errorBox: {
+    backgroundColor: '#450a0a',
+    borderColor: '#7f1d1d',
+  },
+  errorText: {
+    color: '#fecaca',
+  },
+  irabBox: {
+    backgroundColor: '#0f172a',
+    borderColor: '#334155',
+  },
+  bodyText: {
+    color: '#f8fafc',
+  },
+});
